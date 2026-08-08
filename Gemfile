@@ -11,7 +11,7 @@ gem "puma", ">= 5.0"
 gem "sidekiq", "~> 7.3"
 gem "redis", "~> 5.3"
 gem "elasticsearch-model", "~> 7.2"
-gem "elasticsearch-rails", "~> 7.2"
+gem "elasticsearch-rails", "~> 8.0"
 gem "lograge"
 gem "connection_pool", "~> 2.4"
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]

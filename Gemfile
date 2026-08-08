@@ -8,7 +8,7 @@ gem "pg", "~> 1.5"
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"
-gem "sidekiq", "~> 7.3"
+gem "sidekiq", "~> 8.0"
 gem "redis", "~> 5.3"
 # gem "elasticsearch-model", "~> 7.2"
 # gem "elasticsearch-rails", "~> 7.2"

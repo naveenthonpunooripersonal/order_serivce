@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: password
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0"
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+      - elasticsearch
+    environment:
+      DATABASE_URL: postgres://postgres:password@db:5432/myapp_development
+      REDIS_URL: redis://redis:6379/0
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+
+  sidekiq:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bundle exec sidekiq
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgres://postgres:password@db:5432/myapp_development
+      REDIS_URL: redis://redis:6379/0
+
+  newrelic-logging:
+    image: newrelic/newrelic-fluentbit-output:latest
+    container_name: newrelic_log_shipper
+    restart: unless-stopped
+    environment:
+      - LICENSE_KEY=8f4b34ac6d48c94c9cdaae9fb8530642a032NRAL
+      - FILE_PATH=/var/lib/docker/containers/*/*.log
+      - PATH_TO_LOG=/var/lib/docker/containers/*/*.log
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+
+volumes:
+  db_data:
+  redis_data:
+  es_data:

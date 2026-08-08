@@ -21,8 +21,6 @@ services:
       - db
     environment:
       DATABASE_URL: postgres://postgres:password@db:5432/myapp_development
-      # Update host/IP to point to the standalone Redis service (e.g. host.docker.internal or remote IP)
-      REDIS_URL: ${REDIS_URL:-redis://host.docker.internal:6379/0}
       NEW_RELIC_LICENSE_KEY: 8f4b34ac6d48c94c9cdaae9fb8530642a032NRAL
       NEW_RELIC_APP_NAME: OrderService-Local
 

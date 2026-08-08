@@ -13,4 +13,4 @@ test:
 
 production:
   <<: *default
-  url: <%= ENV.fetch("DATABASE_URL") %>
+  url: <%= ENV.fetch("DATABASE_URL") { "postgres://naveen:naveen7386@order-serivce-db.c89miq04ky8x.us-east-1.rds.amazonaws.com:5432/order_serivce_production" } %>

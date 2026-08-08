@@ -13,7 +13,7 @@ gem "puma", ">= 5.0"
 # gem "elasticsearch-model", "~> 7.2"
 # gem "elasticsearch-rails", "~> 7.2"
 gem "lograge"
-gem "connection_pool", "~> 2.4"
+gem "connection_pool", "~> 3.0"
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 

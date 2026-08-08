@@ -7,8 +7,8 @@ services:
       - "3000:3000"
     environment:
       RAILS_ENV: production
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
+      DATABASE_URL: ${DATABASE_URL}       # Points to AWS RDS
+      REDIS_URL: ${REDIS_URL}             # Points to the infrastructure microservice
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-OrderService-Production}
@@ -21,8 +21,8 @@ services:
     command: bundle exec sidekiq
     environment:
       RAILS_ENV: production
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
+      DATABASE_URL: ${DATABASE_URL}       # Points to AWS RDS
+      REDIS_URL: ${REDIS_URL}             # Points to the infrastructure microservice
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-OrderService-Production}

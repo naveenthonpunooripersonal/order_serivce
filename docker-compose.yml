@@ -8,13 +8,6 @@ services:
     ports:
       - "5432:5432"
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-
   web:
     build:
       context: .
@@ -26,29 +19,12 @@ services:
       - "3000:3000"
     depends_on:
       - db
-      - redis
     environment:
       DATABASE_URL: postgres://postgres:password@db:5432/myapp_development
-      REDIS_URL: redis://redis:6379/0
-      NEW_RELIC_LICENSE_KEY: 8f4b34ac6d48c94c9cdaae9fb8530642a032NRAL
-      NEW_RELIC_APP_NAME: OrderService-Local
-
-  sidekiq:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    command: bundle exec sidekiq
-    volumes:
-      - .:/app
-    depends_on:
-      - db
-      - redis
-    environment:
-      DATABASE_URL: postgres://postgres:password@db:5432/myapp_development
-      REDIS_URL: redis://redis:6379/0
+      # Update host/IP to point to the standalone Redis service (e.g. host.docker.internal or remote IP)
+      REDIS_URL: ${REDIS_URL:-redis://host.docker.internal:6379/0}
       NEW_RELIC_LICENSE_KEY: 8f4b34ac6d48c94c9cdaae9fb8530642a032NRAL
       NEW_RELIC_APP_NAME: OrderService-Local
 
 volumes:
   db_data:
-  redis_data:

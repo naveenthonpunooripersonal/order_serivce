@@ -15,17 +15,6 @@ services:
     volumes:
       - redis_data:/data
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-
   web:
     build:
       context: .
@@ -38,11 +27,11 @@ services:
     depends_on:
       - db
       - redis
-      - elasticsearch
     environment:
       DATABASE_URL: postgres://postgres:password@db:5432/myapp_development
       REDIS_URL: redis://redis:6379/0
-      ELASTICSEARCH_URL: http://elasticsearch:9200
+      NEW_RELIC_LICENSE_KEY: 8f4b34ac6d48c94c9cdaae9fb8530642a032NRAL
+      NEW_RELIC_APP_NAME: OrderService-Local
 
   sidekiq:
     build:
@@ -57,20 +46,9 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:password@db:5432/myapp_development
       REDIS_URL: redis://redis:6379/0
-
-  newrelic-logging:
-    image: newrelic/newrelic-fluentbit-output:latest
-    container_name: newrelic_log_shipper
-    restart: unless-stopped
-    environment:
-      - LICENSE_KEY=8f4b34ac6d48c94c9cdaae9fb8530642a032NRAL
-      - FILE_PATH=/var/lib/docker/containers/*/*.log
-      - PATH_TO_LOG=/var/lib/docker/containers/*/*.log
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      NEW_RELIC_LICENSE_KEY: 8f4b34ac6d48c94c9cdaae9fb8530642a032NRAL
+      NEW_RELIC_APP_NAME: OrderService-Local
 
 volumes:
   db_data:
   redis_data:
-  es_data:

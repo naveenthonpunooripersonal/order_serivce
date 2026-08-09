@@ -1,0 +1,98 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: order_serivce
+  AWS_ACCOUNT_ID: "492715478776"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Run Tests
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/myapp_test
+          RAILS_ENV: test
+        run: |
+          bin/rails db:create db:schema:load
+          bundle exec rails test # Change to 'bundle exec rspec' if using RSpec
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy Container to EC2 via AWS SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "<YOUR_EC2_INSTANCE_ID>" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 492715478776.dkr.ecr.us-east-1.amazonaws.com",
+              "docker pull 492715478776.dkr.ecr.us-east-1.amazonaws.com/order_serivce:latest",
+              "docker stop myapp-web || true",
+              "docker rm myapp-web || true",
+              "DATABASE_URL=$(aws ssm get-parameter --name /myapp/database_url --with-decryption --query Parameter.Value --output text --region us-east-1)",
+              "SECRET_KEY_BASE=$(aws ssm get-parameter --name /myapp/secret_key_base --with-decryption --query Parameter.Value --output text --region us-east-1)",
+              "docker run -d --name myapp-web --restart unless-stopped -p 3000:3000 -e RAILS_ENV=production -e DATABASE_URL=\"$DATABASE_URL\" -e SECRET_KEY_BASE=\"$SECRET_KEY_BASE\" 492715478776.dkr.ecr.us-east-1.amazonaws.com/order_serivce:latest",
+              "docker exec myapp-web bundle exec rails db:migrate"
+            ]' \
+            --region us-east-1
